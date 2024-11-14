@@ -1,0 +1,7 @@
+#Need to add cities along with its config
+congestion-tax:
+  maxFeePerDay: 60
+  allowYear: 2013
+  defaultCity: gothenburg
+  cities:
+    gothenburg: gothenburg
