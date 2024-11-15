@@ -33,13 +33,13 @@ public class CongestionServiceImpl implements CongestionService {
     public CongestionFeeResponse calculateCongestionFee(CongestionFeeRequest request) {
         // Perform all request validations (year, city, exempt vehicles, etc.)
         if (!validationService.validateRequest(request)) {
-            return new CongestionFeeResponse(0);  // Return 0 if validation fails
+            return new CongestionFeeResponse(0, "", "");  // Return 0 if validation fails
         }
 
         // Use the context to get the correct strategy and calculate the fee
         int totalFee = feeContext.executeStrategy(request.city(), request.vehicleType(), request.timeStamps());
 
         // Return the response containing the calculated total fee
-        return new CongestionFeeResponse(totalFee);
+        return new CongestionFeeResponse(totalFee, request.city(), request.vehicleType());
     }
 }

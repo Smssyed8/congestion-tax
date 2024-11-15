@@ -47,23 +47,39 @@ public class FeeCalculatorServiceImpl implements FeeCalculatorService {
      * @return
      */
     private int calculateDailyFee(List<LocalDateTime> timeStamps, String city) {
-        var sortedTimestamps = timeStamps.stream().sorted().toList();
-        var totalFee = new AtomicInteger(0);
-        var highestFeeInWindow = new AtomicInteger(feeSlotService.getFeeForTime(sortedTimestamps.get(0).toLocalTime(), city));
-        sortedTimestamps.stream().reduce((prev, next) -> {
-            var currentFee = feeSlotService.getFeeForTime(next.toLocalTime(), city);
-            if (isWithinOneHourWindow(prev, next)) {
-                highestFeeInWindow.set(Math.max(highestFeeInWindow.get(), currentFee));
-            } else {
-                totalFee.addAndGet(highestFeeInWindow.get());
-                highestFeeInWindow.set(currentFee);
-            }
-            return next;
-        });
+        if (timeStamps == null || timeStamps.isEmpty()) {
+            return 0; // No timestamps no fee
+        }
 
-        totalFee.addAndGet(highestFeeInWindow.get());
-        return Math.min(totalFee.get(), CongestionTaxConstants.MAX_DAILY_FEE);  // Max fee per day is 60 SEK
+        // Sorting the timestamps
+        var sortedTimestamps = timeStamps.stream().sorted().toList();
+
+        int totalFee = 0;
+        int highestFeeInWindow = feeSlotService.getFeeForTime(sortedTimestamps.get(0).toLocalTime(), city);
+
+        // Iterate over the sorted timestamps
+        for (int i = 1; i < sortedTimestamps.size(); i++) {
+            var prev = sortedTimestamps.get(i - 1);
+            var next = sortedTimestamps.get(i);
+            var currentFee = feeSlotService.getFeeForTime(next.toLocalTime(), city);
+
+            // Check if the current timestamp is within the same oon hour window
+            if (isWithinOneHourWindow(prev, next)) {
+                highestFeeInWindow = Math.max(highestFeeInWindow, currentFee);
+            } else {
+                // Add the highest fee from the previous window to the total
+                totalFee += highestFeeInWindow;
+                highestFeeInWindow = currentFee; // Reset for the new window
+            }
+        }
+
+        // Add the last window highest fee
+        totalFee += highestFeeInWindow;
+
+        // Return the total fee, max 60
+        return Math.min(totalFee, CongestionTaxConstants.MAX_DAILY_FEE);  // Max fee per day is 60 Krone
     }
+
 
     /**
      * Method to check if the previous and current time is within 1 hour window
